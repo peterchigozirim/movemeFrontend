@@ -1,13 +1,14 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import {
   fetchDepartures,
   publishDeparture,
   cancelDeparture,
   fetchPassengers,
   updateProgress,
+  fetchRoutes
 } from '@/services/driverService'
-import { fetchRoutes } from '@/services/passengerService'
 import { useAction } from '@/composable/useAction'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { dateTime, money, label, localToIso } from '@/utils/format'
@@ -30,8 +31,8 @@ const nextAction = (d) =>
   })[d.status]
 
 async function load() {
-  const res = await run(fetchDepartures)
-  if (res) departures.value = res.data
+  const { data } = await run(fetchDepartures)
+  if (data) departures.value = data.data
 }
 
 async function publish() {
@@ -70,22 +71,22 @@ async function togglePassengers(d) {
 }
 
 onMounted(async () => {
-  const res = await run(fetchRoutes)
-  if (res) routes.value = res.data
+  const { data } = await run(fetchRoutes)
+  if (data) routes.value = data.data
   await load()
 })
 </script>
 
 <template>
-  <h1 class="mb-4 text-xl font-bold">Departures</h1>
+  <h1 class="mb-4 font-bold text-xl">Departures</h1>
 
-  <form class="card mb-6 grid gap-3 sm:grid-cols-4" @submit.prevent="publish">
+  <form class="gap-3 grid sm:grid-cols-4 mb-6 card" @submit.prevent="publish">
     <div class="sm:col-span-2">
       <label class="label" for="route">Route</label>
       <select id="route" v-model="form.routeId" class="input" required>
         <option value="" disabled>Select a route</option>
         <option v-for="r in routes" :key="r.id" :value="r.id">
-          {{ r.pickup }} → {{ r.dropoff }} ({{ r.durationMinutes }} min)
+          {{ r.origin }} → {{ r.destination }} ({{ r.durationMinutes }} min)
         </option>
       </select>
     </div>
@@ -96,8 +97,8 @@ onMounted(async () => {
     <div>
       <label class="label" for="mode">Mode</label>
       <select id="mode" v-model="form.mode" class="input">
-        <option value="solo">Solo</option>
-        <option value="pooled">Pooled</option>
+        <option value="SOLO">Solo</option>
+        <option value="POOL">Pool</option>
       </select>
     </div>
     <div class="sm:col-span-4">
@@ -110,44 +111,35 @@ onMounted(async () => {
     <article v-for="d in sorted" :key="d.id" class="card">
       <div class="flex flex-wrap justify-between gap-2">
         <div>
-          <p class="font-semibold">{{ d.route.pickup }} → {{ d.route.dropoff }}</p>
-          <p class="text-sm text-slate-600">
+          <p class="font-semibold">{{ d.route.origin }} → {{ d.route.destination }}</p>
+          <p class="text-slate-600 text-sm">
             {{ dateTime(d.departureTime) }} · {{ d.route.durationMinutes }} min ·
-            {{ label(d.mode) }} · {{ money(d.fare) }} · {{ d.bookedSeats }}/{{ d.capacity }} seats
+            {{ label(d.mode) }} · {{ money(d.fare) }} · {{ d.totalSeats }}/{{ d.vehicle.seats }} seats
             booked
           </p>
         </div>
         <StatusBadge :status="d.status" />
       </div>
-      <div class="mt-3 flex flex-wrap gap-2 border-t pt-3">
-        <button
-          v-if="nextAction(d)"
-          class="btn"
-          :disabled="busy"
-          @click="progress(d, nextAction(d)[0])"
-        >
+      <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t">
+        <RouterLink class="btn btn-secondary" :to="`/driver/departures/${d.id}/details`">
+          Details
+        </RouterLink>
+        <button v-if="nextAction(d)" class="btn" :disabled="busy" @click="progress(d, nextAction(d)[0])">
           {{ nextAction(d)[1] }}
         </button>
-        <button
-          v-if="['scheduled', 'arrived'].includes(d.status)"
-          class="btn btn-danger"
-          :disabled="busy"
-          @click="cancel(d)"
-        >
+        <button v-if="['scheduled', 'arrived'].includes(d.status)" class="btn btn-danger" :disabled="busy"
+          @click="cancel(d)">
           Cancel departure
         </button>
-        <button
-          v-if="active(d) || d.status === 'completed'"
-          class="btn btn-secondary"
-          @click="togglePassengers(d)"
-        >
+        <button v-if="active(d) || d.status === 'completed'" class="btn btn-secondary" @click="togglePassengers(d)">
           {{ passengers[d.id] ? 'Hide' : 'Show' }} passengers
         </button>
       </div>
-      <ul v-if="passengers[d.id]" class="mt-3 space-y-1 text-sm">
+      <ul v-if="passengers[d.id]" class="space-y-1 mt-3 text-sm">
         <li v-if="!passengers[d.id].length" class="text-slate-500">No passengers.</li>
         <li v-for="p in passengers[d.id]" :key="p.bookingId" class="flex gap-2">
-          {{ p.name }} <StatusBadge :status="p.status" />
+          {{ p.name }}
+          <StatusBadge :status="p.status" />
         </li>
       </ul>
     </article>

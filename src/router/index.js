@@ -26,6 +26,10 @@ const routes = [
         path: 'driver/departures',
         ...view(() => import('@/views/driver/DeparturesView.vue'), ['DRIVER']),
       },
+      {
+        path: 'driver/departures/:id/details',
+        ...view(() => import('@/views/driver/DepartureDetailsView.vue'), ['DRIVER']),
+      },
       { path: 'admin/routes', ...view(() => import('@/views/admin/RoutesView.vue'), ['ADMIN']) },
       { path: 'admin/drivers', ...view(() => import('@/views/admin/DriversView.vue'), ['ADMIN']) },
       { path: 'admin/users', ...view(() => import('@/views/admin/UsersView.vue'), ['ADMIN']) },
