@@ -28,6 +28,7 @@ const routes = [
       },
       { path: 'admin/routes', ...view(() => import('@/views/admin/RoutesView.vue'), ['ADMIN']) },
       { path: 'admin/drivers', ...view(() => import('@/views/admin/DriversView.vue'), ['ADMIN']) },
+      { path: 'admin/users', ...view(() => import('@/views/admin/UsersView.vue'), ['ADMIN']) },
       { path: 'admin/issues', ...view(() => import('@/views/admin/IssuesView.vue'), ['ADMIN']) },
     ],
   },
