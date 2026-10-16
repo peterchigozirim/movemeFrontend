@@ -61,3 +61,21 @@ npm run test:e2e -- --debug
 ```sh
 npm run lint
 ```
+
+## MoveMe frontend
+
+Vue 3 + Pinia + Vue Router + Tailwind + PrimeVue (toasts). Talks to the Express backend.
+
+Setup: `cp .env.example .env` (set `VITE_API_BASE_URL`), `npm install`, `npm run dev`.
+
+### API contract the UI expects (Bearer token auth, JSON, errors as `{ message, errors? }`)
+
+- `POST /api/auth/register|login` → `{ token, user:{id,name,email,role} }`; `POST /api/auth/logout`; `GET /api/auth/me`
+- `GET /api/routes` → `[{id,pickup,dropoff,durationMinutes}]`
+- `GET /api/departures?routeId&mode=solo|pooled&when=immediate|scheduled&date` → `[{id,route,departureTime,driver:{name},mode,fare,capacity,availableSeats}]`
+- `POST /api/bookings {departureId}` (header `Idempotency-Key`) → booking; `GET /api/bookings` → `[{id,status,fare,expiresAt,refund,departure:{departureTime,status,mode,route,driver}}]`
+- `POST /api/bookings/:id/pay {outcome:'success'|'failure'}` (Idempotency-Key); `POST /api/bookings/:id/cancel`
+- Booking statuses: `pending_payment|confirmed|cancelled|expired|failed`; departure statuses: `scheduled|arrived|in_progress|completed|cancelled`
+- `GET /api/notifications`, `POST /api/notifications/:id/read`
+- Driver: `GET|PUT /api/driver/vehicle` (`{description,registration,capacity,driverEnabled}`), `GET|POST /api/driver/departures` (`{routeId,departureTime,mode}`), `POST /api/driver/departures/:id/(arrive|start|complete|cancel)`, `GET /api/driver/departures/:id/passengers` → `[{bookingId,name,status}]`
+- Admin: `GET|POST /api/admin/routes`, `PATCH /api/admin/routes/:id` (`{pickup,dropoff,durationMinutes,soloFare,seatFare}`), `GET /api/admin/drivers`, `PATCH /api/admin/drivers/:id {enabled}`, `GET|POST /api/admin/issues`, `PATCH /api/admin/issues/:id {status}`
