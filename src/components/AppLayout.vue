@@ -1,6 +1,6 @@
 <script setup>
 import { RouterLink, RouterView, useRouter } from 'vue-router'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/userStore'
 
 const store = useUserStore()
@@ -33,6 +33,11 @@ async function logout() {
   await store.logout()
   router.replace('/login')
 }
+onMounted(async () => {
+  if (store.isAuthenticated) {
+    await store.handleFetchUser()
+  }
+})
 </script>
 
 <template>
@@ -46,7 +51,9 @@ async function logout() {
             {{ text }}
           </RouterLink>
         </nav>
-        <span class="text-slate-500 text-sm">{{ store.user?.name }} ({{ store.role }})</span>
+        <span class="text-slate-500 text-sm capitalize">{{ store.user?.firstName + ' ' + store.user?.lastName }} ({{
+          store.role
+          }})</span>
         <button class="btn btn-secondary" @click="logout">Log out</button>
       </div>
     </header>

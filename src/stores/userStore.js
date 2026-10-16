@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { loginRequest, registerRequest, logoutRequest } from '@/services/authService'
+import {
+  loginRequest,
+  registerRequest,
+  logoutRequest,
+  fetchCurrentUser,
+} from '@/services/authService'
 
 export const useUserStore = defineStore(
   'user',
@@ -16,7 +21,7 @@ export const useUserStore = defineStore(
     const isPassenger = computed(() => role.value === 'PASSENGER')
 
     const home = computed(
-      () => ({ admin: '/admin/routes', driver: '/driver/departures' })[role.value] ?? '/search',
+      () => ({ ADMIN: '/admin/routes', DRIVER: '/driver/departures' })[role.value] ?? '/search',
     )
 
     const clearUser = () => {
@@ -30,7 +35,6 @@ export const useUserStore = defineStore(
         const { data } = await request(payload)
         user.value = data.data.user
         token.value = data.data.token
-        console.log(data.data.user)
         return data.data.user
       } finally {
         isLoading.value = false
@@ -39,6 +43,12 @@ export const useUserStore = defineStore(
 
     const handleLogin = (details) => authenticate(loginRequest, details)
     const handleRegister = (details) => authenticate(registerRequest, details)
+
+    const handleFetchUser = async () => {
+      const { data } = await fetchCurrentUser()
+      user.value = data.data
+      return data.data
+    }
 
     const logout = async () => {
       clearUser()
@@ -58,6 +68,7 @@ export const useUserStore = defineStore(
       handleRegister,
       logout,
       clearUser,
+      handleFetchUser,
     }
   },
   { persist: true },
