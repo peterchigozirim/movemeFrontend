@@ -63,15 +63,15 @@ export function useApiError() {
       return
     }
 
-    // Known status codes
-    if (STATUS_MESSAGES[status]) {
-      _toast(STATUS_MESSAGES[status], summary ?? 'Error', life)
-      return
-    }
-
     // Any other server error with a message
     if (error.response.data?.message) {
       _toast(error.response.data.message, summary ?? 'Error', life)
+      return
+    }
+
+    // Known status codes
+    if (STATUS_MESSAGES[status]) {
+      _toast(STATUS_MESSAGES[status], summary ?? 'Error', life)
       return
     }
 

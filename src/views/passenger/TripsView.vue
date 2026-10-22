@@ -13,8 +13,8 @@ let timer
 let poll
 
 const isUpcoming = (b) =>
-  ['pending_payment', 'confirmed'].includes(b.status) &&
-  !['completed', 'cancelled'].includes(b.departure.status)
+  ['PENDING_PAYMENT', 'CONFIRMED'].includes(b.status) &&
+  !['CLOSED'].includes(b.departure.status)
 
 const upcoming = computed(() =>
   bookings.value
@@ -28,15 +28,15 @@ const history = computed(() =>
 )
 
 const secondsLeft = (b) =>
-  Math.max(0, Math.floor((new Date(b.expiresAt).getTime() - now.value) / 1000))
+  Math.max(0, Math.floor((new Date(b.payment.expiresAt).getTime() - now.value) / 1000))
 const countdown = (b) => {
   const s = secondsLeft(b)
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
 async function load() {
-  const res = await run(fetchBookings)
-  if (res) bookings.value = res.data
+  const { data } = await run(fetchBookings)
+  if (data) bookings.value = data.data
 }
 
 async function pay(b, outcome) {
@@ -44,8 +44,14 @@ async function pay(b, outcome) {
   payKeys[k] ??= crypto.randomUUID()
   const res = await run(() => payBooking(b.id, { outcome }, payKeys[k]))
   delete payKeys[k]
-  await load()
-  return res
+  if (res?.data?.data.authorizationUrl) {
+    window.location.href = res.data.data.authorizationUrl
+    await load()
+    return res
+  }
+  console.log(res);
+
+
 }
 
 async function cancel(b) {
@@ -66,51 +72,43 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <h1 class="mb-4 text-xl font-bold">My trips</h1>
+  <h1 class="mb-4 font-bold text-xl">My trips</h1>
 
   <h2 class="mb-2 font-semibold">Upcoming</h2>
   <p v-if="!upcoming.length" class="mb-6 text-slate-500">No upcoming trips.</p>
-  <div class="mb-6 space-y-3">
+  <div class="space-y-3 mb-6">
     <article v-for="b in upcoming" :key="b.id" class="card">
       <div class="flex flex-wrap justify-between gap-2">
         <div>
           <p class="font-semibold">
-            {{ b.departure.route.pickup }} → {{ b.departure.route.dropoff }}
+            {{ b.departure.route.origin }} → {{ b.departure.route.destination }}
           </p>
-          <p class="text-sm text-slate-600">
+          <p class="text-slate-600 text-sm capitalize">
             Pickup {{ dateTime(b.departure.departureTime) }} · {{ label(b.departure.mode) }} ·
-            Driver {{ b.departure.driver.name }}
+            (Driver) {{ b.departure.driver.firstName + ' ' + b.departure.driver.lastName }}
           </p>
-          <p class="text-sm font-medium">{{ money(b.fare) }}</p>
+          <p class="font-medium text-sm">{{ money(b.fare) }}</p>
         </div>
         <div class="space-y-1 text-right">
           <StatusBadge :status="b.status" />
-          <div><StatusBadge :status="b.departure.status" /></div>
+          <div>
+            <StatusBadge :status="b.departure.status" />
+          </div>
         </div>
       </div>
 
-      <div
-        v-if="b.status === 'pending_payment'"
-        class="mt-3 flex flex-wrap items-center gap-2 border-t pt-3"
-      >
-        <span class="text-sm text-amber-700">
+      <div v-if="b.status === 'PENDING_PAYMENT'" class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t">
+        <span class="text-amber-700 text-sm">
           Seat held for {{ countdown(b) }} — pay to confirm.
         </span>
-        <button class="btn" :disabled="busy || secondsLeft(b) === 0" @click="pay(b, 'success')">
+        <button class="btn" :disabled="busy || secondsLeft(b) === 0" @click="pay(b.payment, 'success')">
           Pay (simulate success)
         </button>
-        <button
-          class="btn btn-secondary"
-          :disabled="busy || secondsLeft(b) === 0"
-          @click="pay(b, 'failure')"
-        >
+        <button class="btn btn-secondary" :disabled="busy || secondsLeft(b) === 0" @click="pay(b, 'failure')">
           Simulate failure
         </button>
       </div>
-      <div
-        v-else-if="b.status === 'confirmed' && b.departure.status === 'scheduled'"
-        class="mt-3 border-t pt-3"
-      >
+      <div v-else-if="b.status === 'CONFIRMED' && b?.payment?.status === 'SUCCESS'" class="mt-3 pt-3 border-t">
         <button class="btn btn-danger" :disabled="busy" @click="cancel(b)">Cancel booking</button>
       </div>
     </article>
@@ -119,22 +117,28 @@ onBeforeUnmount(() => {
   <h2 class="mb-2 font-semibold">History</h2>
   <p v-if="!history.length" class="text-slate-500">No past trips.</p>
   <div class="space-y-3">
-    <article v-for="b in history" :key="b.id" class="card flex flex-wrap justify-between gap-2">
+    <article v-for="b in history" :key="b.id" class="flex flex-wrap justify-between gap-2 card">
       <div>
         <p class="font-semibold">
-          {{ b.departure.route.pickup }} → {{ b.departure.route.dropoff }}
+          {{ b.departure.route.origin }} → {{ b.departure.route.destination }}
         </p>
-        <p class="text-sm text-slate-600">
+        <p class="text-slate-600 text-sm">
           {{ dateTime(b.departure.departureTime) }} · {{ label(b.departure.mode) }} ·
           {{ money(b.fare) }}
         </p>
-        <p v-if="b.refund" class="text-sm text-slate-600">
+        <p v-if="b.refund" class="text-slate-600 text-sm">
           Simulated refund: {{ money(b.refund.amount) }} ({{ label(b.refund.status) }})
         </p>
       </div>
       <div class="space-y-1 text-right">
-        <StatusBadge :status="b.status" />
-        <div><StatusBadge :status="b.departure.status" /></div>
+        <div class="flex items-center gap-2 text-xs">
+          Payment:
+          <StatusBadge :status="b.status" />
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          Departure:
+          <StatusBadge :status="b.departure.status" />
+        </div>
       </div>
     </article>
   </div>

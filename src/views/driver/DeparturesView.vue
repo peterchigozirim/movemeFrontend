@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
   fetchDepartures,
@@ -19,9 +19,7 @@ const departures = ref([])
 const passengers = reactive({})
 const form = reactive({ routeId: '', departureTime: '', mode: 'solo' })
 
-const sorted = computed(() =>
-  [...departures.value].sort((a, b) => new Date(a.departureTime) - new Date(b.departureTime)),
-)
+
 const active = (d) => ['scheduled', 'arrived', 'in_progress'].includes(d.status)
 const nextAction = (d) =>
   ({
@@ -106,12 +104,12 @@ onMounted(async () => {
     </div>
   </form>
 
-  <p v-if="!sorted.length" class="text-slate-500">You have not published any departures.</p>
+  <p v-if="!departures.length" class="text-slate-500">You have not published any departures.</p>
   <div class="space-y-3">
-    <article v-for="d in sorted" :key="d.id" class="card">
+    <article v-for="d in departures" :key="d.id" class="card">
       <div class="flex flex-wrap justify-between gap-2">
         <div>
-          <p class="font-semibold">{{ d.route.origin }} → {{ d.route.destination }}</p>
+          <p class="font-semibold capitalize">{{ d.route.origin }} → {{ d.route.destination }}</p>
           <p class="text-slate-600 text-sm">
             {{ dateTime(d.departureTime) }} · {{ d.route.durationMinutes }} min ·
             {{ label(d.mode) }} · {{ money(d.fare) }} · {{ d.totalSeats }}/{{ d.vehicle.seats }} seats
@@ -135,13 +133,13 @@ onMounted(async () => {
           {{ passengers[d.id] ? 'Hide' : 'Show' }} passengers
         </button>
       </div>
-      <ul v-if="passengers[d.id]" class="space-y-1 mt-3 text-sm">
+      <!-- <ul v-if="passengers[d.id]" class="space-y-1 mt-3 text-sm">
         <li v-if="!passengers[d.id].length" class="text-slate-500">No passengers.</li>
-        <li v-for="p in passengers[d.id]" :key="p.bookingId" class="flex gap-2">
-          {{ p.name }}
+        <li v-for="p in passengers[d.id]" :key="p.bookingId" class="flex">
+          {{ p.firstName }}
           <StatusBadge :status="p.status" />
         </li>
-      </ul>
+      </ul> -->
     </article>
   </div>
 </template>

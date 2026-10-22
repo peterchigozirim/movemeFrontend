@@ -13,6 +13,10 @@ const routes = [
     children: [
       { path: '', redirect: () => useUserStore().home },
       { path: 'search', ...view(() => import('@/views/passenger/SearchView.vue'), ['PASSENGER']) },
+      {
+        path: 'payment/callback',
+        ...view(() => import('@/views/passenger/PaymentCallbackView.vue'), ['PASSENGER']),
+      },
       { path: 'trips', ...view(() => import('@/views/passenger/TripsView.vue'), ['PASSENGER']) },
       {
         path: 'notifications',

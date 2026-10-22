@@ -6,6 +6,7 @@ import {
   logoutRequest,
   fetchCurrentUser,
 } from '@/services/authService'
+import { useToast } from 'primevue/usetoast'
 
 export const useUserStore = defineStore(
   'user',
@@ -19,6 +20,8 @@ export const useUserStore = defineStore(
     const isAdmin = computed(() => role.value === 'ADMIN')
     const isDriver = computed(() => role.value === 'DRIVER')
     const isPassenger = computed(() => role.value === 'PASSENGER')
+
+    const toast = useToast()
 
     const home = computed(
       () => ({ ADMIN: '/admin/routes', DRIVER: '/driver/departures' })[role.value] ?? '/search',
@@ -36,6 +39,46 @@ export const useUserStore = defineStore(
         user.value = data.data.user
         token.value = data.data.token
         return data.data.user
+      } catch (error) {
+        if (error.response) {
+          let errors = error.response.data
+          if (error.response.status === 401)
+            return toast.add({
+              severity: 'error',
+              summary: 'Something went wrong',
+              detail: errors.message,
+              life: 3000,
+            })
+          else if (error.response.status === 422) {
+            const errors = error.response.data?.errors ?? {}
+            if (errors && Object.keys(errors).length > 0) {
+              for (const key of Object.keys(errors)) {
+                toast({
+                  severity: 'error',
+                  summary: errors.message ?? 'Something went wrong',
+                  life: 3000,
+                })
+              }
+            } else {
+              const message = error.response.data?.message
+              toast({
+                detail:
+                  typeof message === 'string' && message.trim().length > 0
+                    ? message
+                    : 'Something went wrong',
+                summary: 'Something went wrong',
+                life: 3000,
+              })
+            }
+          } else
+            toast({
+              severity: 'error',
+              summary: errors.message ?? 'Something went wrong',
+              life: 3000,
+            })
+        } else {
+          console.log(error)
+        }
       } finally {
         isLoading.value = false
       }

@@ -13,8 +13,6 @@ const state = reactive({ enabled: null, exists: false })
 onMounted(async () => {
   const { data } = await run(fetchVehicle)
   if (data?.data) {
-    console.log(data.data);
-
     Object.assign(form, {
       make: data.data.make,
       model: data.data.model,
