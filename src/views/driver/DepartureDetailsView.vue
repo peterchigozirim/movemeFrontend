@@ -9,13 +9,13 @@ import {
 import { useAction } from '@/composable/useAction'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { dateTime, money, label } from '@/utils/format'
+import { socket } from '@/config/socketio'
 
 const id = useRoute().params.id
 const { busy, run } = useAction()
 const departure = ref(null)
 const passengers = ref([])
 const loaded = ref(false)
-let poll
 
 const tripStatus = [
   { status: 'NOT_STARTED', action: 'ARRIVED', text: 'Mark arrived', done: 'Trip Not Started' },
@@ -68,9 +68,13 @@ async function cancel() {
 
 onMounted(() => {
   load()
-  poll = setInterval(load, 15000) // pending payments confirm or expire meanwhile
+  socket.on('departure_updated', async () => {
+    await load()
+  })
 })
-onBeforeUnmount(() => clearInterval(poll))
+onBeforeUnmount(() => {
+  socket.off('departure_updated')
+})
 </script>
 
 <template>

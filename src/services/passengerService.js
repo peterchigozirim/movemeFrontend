@@ -8,6 +8,7 @@ export const searchDepartures = (payload) => server.post(api + '/search', payloa
 export const createBooking = (payload, key) =>
   server.post(api + '/create-reservation', payload, idempotencyHeader(key))
 export const fetchBookings = () => server.get(api)
+export const fetchOneBooking = (id) => server.get(`${api}/${id}`)
 export const payBooking = (id, payload, key) =>
   server.post(`/payments/${id}/initialize`, payload, idempotencyHeader(key))
 export const cancelBooking = (id) => server.post(api + '/cancel-reservation')
@@ -16,4 +17,5 @@ export const fetchNotifications = () => server.get('/notifications')
 export const markNotificationRead = (id) => server.patch(`/notifications/${id}/read`)
 
 // Paystack redirects here with ?reference=...; the backend confirms the charge with Paystack.
-export const verifyPayment = (reference) => server.get(`/payments/verify/${encodeURIComponent(reference)}`)
+export const verifyPayment = (reference) =>
+  server.get(`/payments/verify/${encodeURIComponent(reference)}`)

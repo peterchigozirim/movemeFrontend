@@ -19,6 +19,10 @@ const routes = [
       },
       { path: 'trips', ...view(() => import('@/views/passenger/TripsView.vue'), ['PASSENGER']) },
       {
+        path: 'trips/:id',
+        ...view(() => import('@/views/passenger/TripDetailsView.vue'), ['PASSENGER']),
+      },
+      {
         path: 'notifications',
         ...view(() => import('@/views/NotificationsView.vue'), ['PASSENGER', 'DRIVER']),
       },

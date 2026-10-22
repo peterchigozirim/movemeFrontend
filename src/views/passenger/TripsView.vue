@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { fetchBookings, payBooking, cancelBooking } from '@/services/passengerService'
 import { useAction } from '@/composable/useAction'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -10,7 +11,6 @@ const now = ref(Date.now())
 const { busy, run } = useAction()
 const payKeys = {}
 let timer
-let poll
 
 const isUpcoming = (b) =>
   ['PENDING_PAYMENT', 'CONFIRMED'].includes(b.status) &&
@@ -62,12 +62,10 @@ async function cancel(b) {
 
 onMounted(() => {
   load()
-  timer = setInterval(() => (now.value = Date.now()), 1000)
-  poll = setInterval(load, 15000) // pick up trip progress and expiries
+  timer = setInterval(() => (now.value = Date.now()), 1000)// pick up trip progress and expiries
 })
 onBeforeUnmount(() => {
   clearInterval(timer)
-  clearInterval(poll)
 })
 </script>
 
@@ -80,9 +78,9 @@ onBeforeUnmount(() => {
     <article v-for="b in upcoming" :key="b.id" class="card">
       <div class="flex flex-wrap justify-between gap-2">
         <div>
-          <p class="font-semibold">
+          <RouterLink :to="`/trips/${b.id}`" class="font-semibold hover:text-indigo-600">
             {{ b.departure.route.origin }} → {{ b.departure.route.destination }}
-          </p>
+          </RouterLink>
           <p class="text-slate-600 text-sm capitalize">
             Pickup {{ dateTime(b.departure.departureTime) }} · {{ label(b.departure.mode) }} ·
             (Driver) {{ b.departure.driver.firstName + ' ' + b.departure.driver.lastName }}
@@ -119,9 +117,9 @@ onBeforeUnmount(() => {
   <div class="space-y-3">
     <article v-for="b in history" :key="b.id" class="flex flex-wrap justify-between gap-2 card">
       <div>
-        <p class="font-semibold">
+        <RouterLink :to="`/trips/${b.id}`" class="font-semibold hover:text-indigo-600">
           {{ b.departure.route.origin }} → {{ b.departure.route.destination }}
-        </p>
+        </RouterLink>
         <p class="text-slate-600 text-sm">
           {{ dateTime(b.departure.departureTime) }} · {{ label(b.departure.mode) }} ·
           {{ money(b.fare) }}

@@ -1,5 +1,6 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, onBeforeUnmount, reactive, ref } from 'vue'
+import { socket } from '@/config/socketio'
 import { RouterLink } from 'vue-router'
 import {
   fetchDepartures,
@@ -72,6 +73,18 @@ onMounted(async () => {
   const { data } = await run(fetchRoutes)
   if (data) routes.value = data.data
   await load()
+  socket.on('new_route', async () => {
+    const { data } = await run(fetchRoutes)
+    if (data) routes.value = data.data
+  })
+  socket.on('departure_updated', async () => {
+    await load()
+  })
+})
+
+onBeforeUnmount(() => {
+  socket.off('new_route')
+  socket.off('departure_updated')
 })
 </script>
 
